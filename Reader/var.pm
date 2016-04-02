@@ -8,7 +8,7 @@ package VNTRseekHelpers::Reader::var;
 
 #** @class VNTRseekHelpers::Reader::var
 # Class representing one record in a .vcf VNTRseek output file.
-# This class is meant to be accessed via the VNTRseekHelpers::Reader::vcf
+# This class is meant to be accessed via the VNTRseekHelpers::Reader::vcfF
 # module, but can be accessed directly to build such entries.
 #
 # Apart from having built in accessors for the various fields in a
