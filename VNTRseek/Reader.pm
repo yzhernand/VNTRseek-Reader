@@ -5,13 +5,13 @@
 # @date     Oct 20, 2014
 #*
 
-package VNTRseekHelpers::Reader;
+package VNTRseek::Reader;
 
-#** @class VNTRseekHelpers
+#** @class VNTRseek::Reader
 # Class used by a client to access one of [possibly] many
 # file readers. A call to this class looks like:
 #
-#     my $file_reader = VNTRseekHelpers::Reader->get_file_reader($format, $file)
+#     my $file_reader = VNTRseek::Reader->get_file_reader($format, $file)
 #
 # where $format is a string denoting the format (currently only "seq"
 # is supported) and $file is the full or relative path to a file of
@@ -29,12 +29,15 @@ sub get_file_reader {
     my $self    = shift;
     my %args    = @_;
     my $reader  = $args{reader};
-    my $package = "VNTRseekHelpers::Reader::$reader" . "F";
+    my $package = "VNTRseek::Reader::$reader" . "F";
     my $fh;
 
-    my $rc = eval { "use $package"; };
-    croak "Could not load module '$package': $@\n" . "Exiting...\n"
-        unless ($rc);
+    eval {
+        require $package;
+        1;
+    } or do {
+        croak "Could not load module '$package': $@\n" . "Exiting...\n";
+    };
 
     if ( $args{file} ) {
         $fh = IO::File->new( $args{file}, "r" );
@@ -57,7 +60,9 @@ sub get_file_reader {
         $fh = *STDIN;
     }
 
-    return $package->new( fh => $fh, %args );
+    say @INC;
+
+    return "$package"->new( fh => $fh, %args );
 }
 
 no Moose;

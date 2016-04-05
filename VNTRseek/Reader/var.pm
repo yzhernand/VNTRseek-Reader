@@ -4,11 +4,11 @@
 # @date     Oct 20, 2014
 #*
 
-package VNTRseekHelpers::Reader::var;
+package VNTRseek::Reader::var;
 
-#** @class VNTRseekHelpers::Reader::var
+#** @class VNTRseek::Reader::var
 # Class representing one record in a .vcf VNTRseek output file.
-# This class is meant to be accessed via the VNTRseekHelpers::Reader::vcfF
+# This class is meant to be accessed via the VNTRseek::Reader::vcfF
 # module, but can be accessed directly to build such entries.
 #
 # Apart from having built in accessors for the various fields in a

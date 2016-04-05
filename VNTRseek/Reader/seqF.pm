@@ -4,21 +4,21 @@
 # @date     Oct 20, 2014
 #*
 
-package VNTRseekHelpers::Reader::seqF;
+package VNTRseek::Reader::seqF;
 
-#** @class VNTRseekHelpers::Reader::seqF
+#** @class VNTRseek::Reader::seqF
 # A class for reading .seq files used as input for VNTRseek.
 #
 # Example use:
 #
-#     my $seq_reader = VNTRseekHelpers::Reader->get_file_reader("seq", $file);
+#     my $seq_reader = VNTRseek::Reader->get_file_reader("seq", $file);
 #     while (my $entry = $seq_reader->next_seq) { ... }
 #
 # You can also call this module directly, without needing to use
-# VNTRseekHelpers, but that is simply more convenient. Here's how a
+# VNTRseek, but that is simply more convenient. Here's how a
 # direct call to this module would look:
 #
-#     my $seq_reader = VNTRseekHelpers::Reader::seqF->new(fh => $fh);
+#     my $seq_reader = VNTRseek::Reader::seqF->new(fh => $fh);
 #
 # where $fh is an IO::File file handle.
 
@@ -62,7 +62,7 @@ sub next_seq {
     my @fields = split ",", $line;
     my %args;
     @args{@fieldnames} = @fields;
-    return VNTRseekHelpers::Reader::seq->new( \%args );
+    return VNTRseek::Reader::seq->new( \%args );
 }
 
 no Moose;

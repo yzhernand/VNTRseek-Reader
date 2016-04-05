@@ -8,13 +8,13 @@ So far, these modules are only used for reading .seq (input) and .vcf
 
 # Basic usage
 
-## VNTRseekHelpers::Reader
+## VNTRseek::Reader
 
 Class used by a client to access one of [possibly] many
 file readers. A call to this class looks like:
 
 ```perl
-my $file_reader = VNTRseekHelpers::Reader->get_file_reader($format, $file)
+my $file_reader = VNTRseek::Reader->get_file_reader($format, $file)
 ```
 
 where $format is a string denoting the format (currently only "seq"
@@ -22,29 +22,29 @@ and "vcf" are supported) and $file is the full or relative path to a
 file of that format. The file reader can then be used to access the
 file contents.
 
-## VNTRseekHelpers::Reader::seqF
+## VNTRseek::Reader::seqF
 
 ```perl
-my $seq_reader = VNTRseekHelpers::Reader->get_file_reader("seq", $file);
+my $seq_reader = VNTRseek::Reader->get_file_reader("seq", $file);
 while (my $entry = $seq_reader->next_seq) {
     #...
-    # See documentation on VNTRseekHelpers::Reader::seq
+    # See documentation on VNTRseek::Reader::seq
 }
 ```
 
 You can also call this module directly, without needing to use
-VNTRseekHelpers, but that is simply more convenient. Here's how a
+VNTRseek, but that is simply more convenient. Here's how a
 direct call to this module would look:
 
 ```perl
-    my $seq_reader = VNTRseekHelpers::Reader::seqF->new(fh => $fh);
+    my $seq_reader = VNTRseek::Reader::seqF->new(fh => $fh);
 ```
 
 where `$fh` is an `IO::File` file handle.
 
-## VNTRseekHelpers::Reader::seq
+## VNTRseek::Reader::seq
 
-This class is meant to be accessed via the `VNTRseekHelpers::Reader::seqF`
+This class is meant to be accessed via the `VNTRseek::Reader::seqF`
 module, but can be accessed directly to build such entries.
 
 Apart from having built in accessors for the various fields in a
@@ -70,29 +70,29 @@ my $pattern = $self->Pattern;
 my $percent_conserived = $self->Conserved;
 ```
 
-## VNTRseekHelpers::Reader::vcfF
+## VNTRseek::Reader::vcfF
 
 ```perl
-my $vcf_reader = VNTRseekHelpers::Reader->get_file_reader("vcf", $file);
+my $vcf_reader = VNTRseek::Reader->get_file_reader("vcf", $file);
 while (my $entry = $vcf_reader->next_var) {
     #...
-    # See documentation on VNTRseekHelpers::Reader::var
+    # See documentation on VNTRseek::Reader::var
 }
 ```
 
 You can also call this module directly, without needing to use
-VNTRseekHelpers::Reader, but that is simply more convenient. Here's how a
+VNTRseek::Reader, but that is simply more convenient. Here's how a
 direct call to this module would look:
 
 ```perl
-    my $vcf_reader = VNTRseekHelpers::Reader::vcfF->new(fh => $fh);
+    my $vcf_reader = VNTRseek::Reader::vcfF->new(fh => $fh);
 ```
 
 where `$fh` is an `IO::File` file handle.
 
-## VNTRseekHelpers::Reader::var
+## VNTRseek::Reader::var
 
-This class is meant to be accessed via the `VNTRseekHelpers::Reader::vcfF`
+This class is meant to be accessed via the `VNTRseek::Reader::vcfF`
 module, but can be accessed directly to build such entries.
 
 Apart from having built in accessors for the various fields in a

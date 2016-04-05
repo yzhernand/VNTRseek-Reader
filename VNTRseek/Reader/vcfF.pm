@@ -4,21 +4,21 @@
 # @date     Oct 20, 2014
 #*
 
-package VNTRseekHelpers::Reader::vcfF;
+package VNTRseek::Reader::vcfF;
 
-#** @class VNTRseekHelpers::Reader::vcfF
+#** @class VNTRseek::Reader::vcfF
 # A class for reading .vcf files produced as output by VNTRseek.
 #
 # Example use:
 #
-#     my $vcf_reader = VNTRseekHelpers::Reader->get_file_reader("vcf", $file);
+#     my $vcf_reader = VNTRseek::Reader->get_file_reader("vcf", $file);
 #     while (my $entry = $vcf_reader->next_var) { ... }
 #
 # You can also call this module directly, without needing to use
-# VNTRseekHelpers::Reader, but that is simply more convenient. Here's how a
+# VNTRseek::Reader, but that is simply more convenient. Here's how a
 # direct call to this module would look:
 #
-#     my $vcf_reader = VNTRseekHelpers::Reader::vcfIO->new(fh => $fh);
+#     my $vcf_reader = VNTRseek::Reader::vcfF->new(fh => $fh);
 #
 # where $fh is an IO::File file handle.
 
@@ -104,7 +104,7 @@ sub next_var {
     my %args;
     @args{@fieldnames}
         = ( $trid, \@alleles, \@num_reads, \@num_copies );
-    return VNTRseekHelpers::Reader::var->new(%args);
+    return VNTRseek::Reader::var->new(%args);
 }
 
 no Moose;
