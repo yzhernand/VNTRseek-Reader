@@ -62,7 +62,17 @@ sub next_seq {
     my @fields = split ",", $line;
     my %args;
     @args{@fieldnames} = @fields;
-    return VNTRseek::Reader::seq->new( \%args );
+
+    my $module = "VNTRseek::Reader::seq";
+    my $load = File::Spec->catfile((split(/::/,"$module.pm")));
+
+    eval {
+        require $load;
+        1;
+    } or do {
+        croak "Could not load module '$module': $@\n" . "Exiting...\n";
+    };
+    return $module->new(%args);
 }
 
 no Moose;

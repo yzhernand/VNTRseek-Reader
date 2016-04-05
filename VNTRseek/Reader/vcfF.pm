@@ -104,7 +104,17 @@ sub next_var {
     my %args;
     @args{@fieldnames}
         = ( $trid, \@alleles, \@num_reads, \@num_copies );
-    return VNTRseek::Reader::var->new(%args);
+
+    my $module = "VNTRseek::Reader::var";
+    my $load = File::Spec->catfile((split(/::/,"$module.pm")));
+
+    eval {
+        require $load;
+        1;
+    } or do {
+        croak "Could not load module '$module': $@\n" . "Exiting...\n";
+    };
+    return $module->new(%args);
 }
 
 no Moose;

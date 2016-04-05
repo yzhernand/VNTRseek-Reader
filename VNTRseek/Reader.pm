@@ -24,19 +24,22 @@ use 5.010;
 use Carp;
 use Moose;
 use IO::File;
+use File::Spec;
+use VNTRseek::Common;
 
 sub get_file_reader {
     my $self    = shift;
     my %args    = @_;
     my $reader  = $args{reader};
-    my $package = "VNTRseek::Reader::$reader" . "F";
+    my $module = "VNTRseek::Reader::$reader" . "F";
     my $fh;
+    my $load = File::Spec->catfile((split(/::/,"$module.pm")));
 
     eval {
-        require $package;
+        require $load;
         1;
     } or do {
-        croak "Could not load module '$package': $@\n" . "Exiting...\n";
+        croak "Could not load module '$module': $@\n" . "Exiting...\n";
     };
 
     if ( $args{file} ) {
@@ -62,7 +65,7 @@ sub get_file_reader {
 
     say @INC;
 
-    return "$package"->new( fh => $fh, %args );
+    return $module->new( fh => $fh, %args );
 }
 
 no Moose;
