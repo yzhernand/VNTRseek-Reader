@@ -100,6 +100,7 @@ Apart from having built in accessors for the various fields in a
 in a CSV format as follows:
 
 ```perl
+my $vcf_record = $vcf_reader->next_var;
 # Prints line to STDOUT
 print $vcf_record;
 # Prints line to file handle pointed to by $fh
@@ -109,8 +110,20 @@ print $fh $vcf_record;
 You can access specific parts of the record. Examples:
 
 ```perl
-my $rid = $self->Repeatid;
-my @alleles = @{ $self->Alleles };
-my @rcounts = @{ $self->ReadCounts };
-my @cgl = @{ $self->CopyGainLoss };
+my $rid = $vcf_record->Repeatid;
+my @alleles = @{ $vcf_record->Alleles };
+my @rcounts = @{ $vcf_record->ReadCounts };
+my @cgl = @{ $vcf_record->CopyGainLoss };
 ```
+
+For convenience, accessors are available that return a list or a scalar, depending on the calling context:
+
+```perl
+my @cgl = $vcf_record->get_cgls;                 # Get the copy gain/loss as an array
+my $cgl_str = $vcf_record->get_cgls;             # Get as a comma-separated string
+my $cgl_str = $vcf_record->get_cgls(sep => "\t"); # Same, but use "\t" as the separator
+```
+
+## Known issues
+
+- VNTRseek::Reader::vcfF does not currently use the existing Perl VCF module, so it cannot properly validate VCF files. Really, this module should be a wrapper for VCF.pm.

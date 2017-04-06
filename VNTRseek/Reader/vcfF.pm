@@ -28,9 +28,8 @@ use IO::File;
 
 # use Vcf;
 
-my @fieldnames = qw( Repeatid    Alleles
-    ReadCounts    CopyGainLoss   IsVNTR
-);
+my @fieldnames
+    = qw( Repeatid RefSeq AlleleSeqs Alleles ReadCounts CopyGainLoss IsVNTR);
 
 has 'fh' => (
     is       => 'rw',
@@ -102,11 +101,10 @@ sub next_var {
 
     # warn "TRID: $trid\n";
     my %args;
-    @args{@fieldnames}
-        = ( $trid, \@alleles, \@num_reads, \@num_copies );
+    @args{@fieldnames} = ( $trid, \@alleles, \@num_reads, \@num_copies );
 
     my $module = "VNTRseek::Reader::var";
-    my $load = File::Spec->catfile((split(/::/,"$module.pm")));
+    my $load = File::Spec->catfile( ( split( /::/, "$module.pm" ) ) );
 
     eval {
         require $load;
