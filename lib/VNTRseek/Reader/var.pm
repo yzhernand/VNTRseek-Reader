@@ -106,7 +106,7 @@ sub get_refseq {
     my $sep    = ( $args{'sep'} ) ? $args{'sep'} : ",";
     my @tmp;
 
-    return ( @{ $self->RefSeq } );
+    return ( $self->RefSeq );
 }
 
 sub get_allele_seqs {
@@ -163,6 +163,9 @@ sub get_cgls {
     my $concat = "";
     my $sep    = ( $args{'sep'} ) ? $args{'sep'} : "/";
 
+    return ( @{ $self->CopyGainLoss } )
+        if (wantarray);
+
     if ( $self->Alleles->[0] == $self->Alleles->[1] ) {
         $concat = sprintf( "%+d$sep%+d",
             $self->CopyGainLoss->[0],
@@ -184,6 +187,9 @@ sub get_rcs {
     my %args   = @_;
     my $concat = "";
     my $sep    = ( $args{'sep'} ) ? $args{'sep'} : "/";
+
+    return ( @{ $self->ReadCounts } )
+        if (wantarray);
 
     if ( $self->Alleles->[0] == $self->Alleles->[1] ) {
         $concat = sprintf( "%d$sep%d",
