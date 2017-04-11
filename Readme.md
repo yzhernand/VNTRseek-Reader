@@ -111,10 +111,14 @@ You can access specific parts of the record. Examples:
 
 ```perl
 my $rid = $vcf_record->Repeatid;
+my $refseq = $vcf_record->RefSeq;
+my @allele_seqs = @{ $vcf_record->AlleleSeqs };
 my @alleles = @{ $vcf_record->Alleles };
 my @rcounts = @{ $vcf_record->ReadCounts };
 my @cgl = @{ $vcf_record->CopyGainLoss };
 ```
+
+Note that `AlleleSeqs` (or the corresponding `get_allele_seqs`) does not include the reference sequence. If the genotype is homozygous reference (0/0), it will contain one sequence, '.'.
 
 For convenience, accessors are available that return a list or a scalar, depending on the calling context:
 
