@@ -29,8 +29,9 @@ use namespace::autoclean;
 
 # use Vcf;
 
-my @fieldnames = qw( Repeatid    Alleles
-    ReadCounts    CopyGainLoss   IsVNTR
+my @fieldnames = qw( Repeatid    RefSeq
+    AlleleSeqs   Alleles     ReadCounts
+    CopyGainLoss   IsVNTR
 );
 
 has 'fh' => (
@@ -94,20 +95,22 @@ sub next_var {
     croak "Bad format in Vcf record on line "
         . $self->fh->input_line_number() . "\n"
         unless @fields == 10;
-    my ( $trid, $subj_info ) = @fields[ 2, 9 ];
+    my ( $trid, $refseq, $allele_seqs, $subj_info ) = @fields[ 2, 3, 4, 9 ];
     my ( $gt, $sp, $cgl ) = split( ":", $subj_info );
-    my @alleles    = split( "/", $gt ); # For now, genotypes are always unphased in VNTRseek output
-    my @num_reads  = split( ",", $sp );
-    my @num_copies = split( ",", $cgl );
+
+    # For now, genotypes are always unphased in VNTRseek output
+    my @allele_seqs = split( ",", $allele_seqs );
+    my @alleles     = split( "/", $gt );
+    my @num_reads   = split( ",", $sp );
+    my @num_copies  = split( ",", $cgl );
     $trid =~ s/td//;
 
     # warn "TRID: $trid\n";
     my %args;
-    @args{@fieldnames}
-        = ( $trid, \@alleles, \@num_reads, \@num_copies );
+    @args{@fieldnames} = ( $trid, $refseq, \@allele_seqs, \@alleles, \@num_reads, \@num_copies );
 
     my $module = "VNTRseek::Reader::var";
-    my $load = File::Spec->catfile((split(/::/,"$module.pm")));
+    my $load = File::Spec->catfile( ( split( /::/, "$module.pm" ) ) );
 
     eval {
         require $load;

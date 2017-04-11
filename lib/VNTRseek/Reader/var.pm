@@ -26,9 +26,11 @@ use overload q("") => sub {
     my $self = shift;
     return join( ",",
         $self->Repeatid,
-        $self->get_allele_str(sep => ","),
-        $self->get_cgl_str(sep => ","),
-        $self->get_rc_str(sep => ",") );
+        $self->get_refseq,
+        $self->get_allele_seqs,
+        $self->get_alleles,
+        $self->get_cgls,
+        $self->get_rcs );
 };
 use namespace::autoclean;
 
@@ -38,35 +40,49 @@ has 'Repeatid' => (
     required => 1
 );
 
+has 'RefSeq' => (
+    is       => 'ro',
+    isa      => 'Str',
+    required => 1
+);
+
+has 'AlleleSeqs' => (
+    is       => 'ro',
+    isa      => 'ArrayRef[Str]',
+    required => 1
+);
+
 has 'Alleles' => (
     is       => 'ro',
-    isa      => 'ArrayRef',
+    isa      => 'ArrayRef[Int]',
     required => 1
 );
 
 has 'ReadCounts' => (
     is       => 'ro',
-    isa      => 'ArrayRef',
+    isa      => 'ArrayRef[Int]',
     required => 1
 );
 
 has 'CopyGainLoss' => (
     is       => 'ro',
-    isa      => 'ArrayRef',
+    isa      => 'ArrayRef[Int]',
     required => 1
 );
 
 sub is_vntr {
     my $self = shift;
+
     # If there are several alleles (rare) or the second
     # allele is greater than 0, this is a VNTR
-    return ( scalar @{$self->Alleles} > 2 ) || ( $self->Alleles->[1] > 0 );
+    return ( scalar @{ $self->Alleles } > 2 ) || ( $self->Alleles->[1] > 0 );
 }
 
 sub is_multi {
     my $self = shift;
+
     # If there are several alleles, this is a "mult" TR
-    return ( scalar @{$self->Alleles} > 2 );
+    return ( scalar @{ $self->Alleles } > 2 );
 }
 
 sub print_line {
@@ -83,21 +99,33 @@ sub print_brief {
     $self->print_line( $self, $fh );
 }
 
-sub get_allele_str {
-    my $self     = shift;
-    my %args     = @_;
+sub get_refseq {
+    my $self   = shift;
+    my %args   = @_;
     my $concat = "";
-    my $sep      = ($args{'sep'}) ? $args{'sep'} : "/";
+    my $sep    = ( $args{'sep'} ) ? $args{'sep'} : ",";
+    my @tmp;
+
+    return ( @{ $self->RefSeq } );
+}
+
+sub get_allele_seqs {
+    my $self   = shift;
+    my %args   = @_;
+    my $concat = "";
+    my $sep    = ( $args{'sep'} ) ? $args{'sep'} : ",";
+    my @tmp;
+
+    return ( @{ $self->AlleleSeqs } )
+        if (wantarray);
 
     if ( $self->Alleles->[0] == $self->Alleles->[1] ) {
-        $concat = sprintf( "%d$sep%d",
-            $self->CopyGainLoss->[0],
-            $self->CopyGainLoss->[0] );
+        $concat = $self->AlleleSeqs->[0];
     }
     else {
         my @tmp;
-        for my $cgl ( @{ $self->CopyGainLoss } ) {
-            push @tmp, sprintf( "%d", $cgl );
+        for my $aseq ( @{ $self->AlleleSeqs } ) {
+            push @tmp, sprintf( "%s", $aseq );
         }
         $concat .= join "$sep", @tmp;
     }
@@ -105,11 +133,35 @@ sub get_allele_str {
     return $concat;
 }
 
-sub get_cgl_str {
-    my $self     = shift;
-    my %args     = @_;
+sub get_alleles {
+    my $self   = shift;
+    my %args   = @_;
     my $concat = "";
-    my $sep      = ($args{'sep'}) ? $args{'sep'} : "/";
+    my $sep    = ( $args{'sep'} ) ? $args{'sep'} : "/";
+
+    return ( @{ $self->AlleleSeqs } )
+        if (wantarray);
+
+    if ( $self->Alleles->[0] == $self->Alleles->[1] ) {
+        $concat
+            = sprintf( "%d$sep%d", $self->Alleles->[0], $self->Alleles->[0] );
+    }
+    else {
+        my @tmp;
+        for my $a ( @{ $self->Alleles } ) {
+            push @tmp, sprintf( "%d", $a );
+        }
+        $concat .= join "$sep", @tmp;
+    }
+
+    return $concat;
+}
+
+sub get_cgls {
+    my $self   = shift;
+    my %args   = @_;
+    my $concat = "";
+    my $sep    = ( $args{'sep'} ) ? $args{'sep'} : "/";
 
     if ( $self->Alleles->[0] == $self->Alleles->[1] ) {
         $concat = sprintf( "%+d$sep%+d",
@@ -127,11 +179,11 @@ sub get_cgl_str {
     return $concat;
 }
 
-sub get_rc_str {
-    my $self     = shift;
-    my %args     = @_;
+sub get_rcs {
+    my $self   = shift;
+    my %args   = @_;
     my $concat = "";
-    my $sep      = ($args{'sep'}) ? $args{'sep'} : "/";
+    my $sep    = ( $args{'sep'} ) ? $args{'sep'} : "/";
 
     if ( $self->Alleles->[0] == $self->Alleles->[1] ) {
         $concat = sprintf( "%d$sep%d",
