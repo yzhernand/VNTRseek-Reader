@@ -25,12 +25,8 @@ use Moose;
 use overload q("") => sub {
     my $self = shift;
     return join( ",",
-        $self->Repeatid,
-        $self->get_refseq,
-        $self->get_allele_seqs,
-        $self->get_alleles,
-        $self->get_cgls,
-        $self->get_rcs );
+        $self->Repeatid,    $self->get_refseq, $self->get_allele_seqs,
+        $self->get_alleles, $self->get_cgls,   $self->get_rcs );
 };
 use namespace::autoclean;
 
@@ -139,7 +135,7 @@ sub get_alleles {
     my $concat = "";
     my $sep    = ( $args{'sep'} ) ? $args{'sep'} : "/";
 
-    return ( @{ $self->AlleleSeqs } )
+    return ( @{ $self->Alleles } )
         if (wantarray);
 
     if ( $self->Alleles->[0] == $self->Alleles->[1] ) {
@@ -205,6 +201,21 @@ sub get_rcs {
     }
 
     return $concat;
+}
+
+sub gt_tab {
+    my $self    = shift;
+    my %args    = @_;
+    my $out_str = "";
+
+    next
+        if($args{'vntr_only'} && !$self->is_vntr);
+
+    my @alleles = $self->get_alleles;
+
+    for ( my ($a, $seq_i) = (0, 0); $a < scalar @alleles; ++$a ) {
+        my $seq = ($self->Alleles->[$a] == 0) ? "." : $self->AlleleSeqs->[$seq_i++] ;
+    }
 }
 
 __PACKAGE__->meta->make_immutable;
