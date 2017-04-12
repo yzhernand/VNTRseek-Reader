@@ -203,7 +203,7 @@ sub get_rcs {
     return $concat;
 }
 
-sub gt_tab {
+sub print_gt_tab {
     my $self    = shift;
     my %args    = @_;
     my $out_str = "";
