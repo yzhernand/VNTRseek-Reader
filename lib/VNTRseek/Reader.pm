@@ -66,8 +66,6 @@ sub get_file_reader {
         $fh = *STDIN;
     }
 
-    say @INC;
-
     return $module->new( fh => $fh, %args );
 }
 
