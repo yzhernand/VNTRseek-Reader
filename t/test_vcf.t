@@ -6,7 +6,9 @@
 # @date     Apr 05, 2016
 #*
 
-use Modern::Perl;
+use 5.010;
+use strict;
+use warnings;
 use Moose;
 use FindBin;
 use lib ".";
