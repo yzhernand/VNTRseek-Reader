@@ -86,7 +86,7 @@ sub BUILD {
 }
 
 sub next_var {
-    my $self = shift;
+    my ($self, %opts) = @_;
 
     # return unless my $d_arr = $self->vcf->next_data_array;
     return unless my $line = $self->fh->getline;
@@ -103,6 +103,16 @@ sub next_var {
     my @alleles     = split( "/", $gt );
     my @num_reads   = split( ",", $sp );
     my @num_copies  = split( ",", $cgl );
+
+    # Save a "." as the reference allele sequence in the allele_seqs array
+    # when there is a heterozygous genotype.
+    # Users can get the actual refseq if needed from get_refseq
+    if ($alleles[0] == 0 && @alleles > 1) {
+        unshift @allele_seqs, ( ($opts{refseq}) ? $refseq : ".");
+    }
+    elsif ($alleles[0] == 0 && @alleles == 1) {
+        @allele_seqs = ( ($opts{refseq}) ? $refseq : ".");
+    }
     $trid =~ s/td//;
 
     # warn "TRID: $trid\n";

@@ -38,7 +38,9 @@ my $vcf = VNTRseek::Reader->get_file_reader(
 # Check if this genome is in the DB
 my $genome = $vcf->genome;
 
-while ( my $tr = $vcf->next_var ) {
+# TODO Add tests!
+# while ( my $tr = $vcf->next_var(refseq => 1) ) {
+while ( my $tr = $vcf->next_var() ) {
 
     # Get the TR and add to database if not found
     # Get all detected alleles, add to db if not found
@@ -50,8 +52,8 @@ while ( my $tr = $vcf->next_var ) {
 
     print "For tr $trid, found allele(s): ";
     for ( my ($v, $seqi) = (0, 0); $v < scalar @cgl; ++$v ) {
-        my $seq = ($cgl[$v] == 0) ? $refseq : $allele_seqs[$seqi++];
-        print $cgl[$v] . " (" . $rc[$v] . " reads, seq: '$seq') ";
+        # my $seq = ($cgl[$v] == 0) ? $refseq : $allele_seqs[$seqi++];
+        print $cgl[$v] . " (" . $rc[$v] . " reads, seq: '" . $allele_seqs[$seqi++] . "') ";
     }
     print "\n";
 }
