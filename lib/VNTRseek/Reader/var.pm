@@ -4,6 +4,8 @@
 # @date     Oct 20, 2014
 #*
 
+use strict;
+
 package VNTRseek::Reader::var;
 
 #** @class VNTRseek::Reader::var
@@ -23,10 +25,24 @@ package VNTRseek::Reader::var;
 use Carp;
 use Moose;
 use overload q("") => sub {
-    my $self = shift;
-    return join( ",",
-        $self->Repeatid,    $self->get_refseq, $self->get_allele_seqs,
-        $self->get_alleles, $self->get_cgls,   $self->get_rcs );
+    my $self    = shift;
+    my $out_str = "$self->{Repeatid}\t$self->{RefSeq}\t";
+    $out_str .= $self->get_altseqs . "\t";
+    my $format = "GT:SP:CGL";
+    $format .= ( $self->has_zslabels )        ? "" : ":ZL";
+    $format .= ( $self->has_mllabel )         ? "" : ":MLZ";
+    $format .= ( $self->has_mlconfidence )    ? "" : ":MLC";
+    $format .= ( $self->has_treenodepercent ) ? "" : ":MLN";
+    $out_str .= "$format\t";
+    $out_str .= join( ":",
+        "" . $self->get_alleles,
+        "" . $self->get_cgls,
+        "" . $self->get_rcs );
+    $out_str .= ( $self->has_zslabels )     ? "" : ":" . $self->get_zslabels;
+    $out_str .= ( $self->has_mllabel )      ? "" : ":" . $self->MLLabel;
+    $out_str .= ( $self->has_mlconfidence ) ? "" : ":" . $self->MLConfidence;
+    $out_str
+        .= ( $self->has_treenodepercent ) ? "" : ":" . $self->TreeNodePercent;
 };
 use namespace::autoclean;
 
@@ -42,7 +58,7 @@ has 'RefSeq' => (
     required => 1
 );
 
-has 'AlleleSeqs' => (
+has 'AltAlleleSeqs' => (
     is       => 'ro',
     isa      => 'ArrayRef[Str]',
     required => 1
@@ -66,19 +82,94 @@ has 'CopyGainLoss' => (
     required => 1
 );
 
-sub is_vntr {
+has 'ZSLabels' => (
+    is        => 'ro',
+    isa       => 'Maybe[ArrayRef[Str]]',
+    predicate => 'has_zslabels',
+);
+
+has 'MLLabel' => (
+    is        => 'ro',
+    isa       => 'Maybe[Str]',
+    predicate => 'has_mllabel',
+);
+
+has 'MLConfidence' => (
+    is        => 'ro',
+    isa       => 'Maybe[Num]',
+    predicate => 'has_mlconfidence',
+);
+
+has 'TreeNodePercent' => (
+    is        => 'ro',
+    isa       => 'Maybe[Num]',
+    predicate => 'has_treenodepercent',
+);
+
+has 'Filter' => (
+    is  => 'ro',
+    isa => 'HashRef[Str]',
+);
+
+has 'IsVNTR' => (
+    is  => 'rw',
+    isa => 'Bool',
+);
+
+has 'IsMulti' => (
+    is  => 'rw',
+    isa => 'Bool',
+);
+
+has 'IsHomozygous' => (
+    is      => 'ro',
+    isa     => 'Bool',
+    lazy    => 1,
+    default => sub {
+        my $self = shift;
+
+        # If there are several alleles, this is a "multi" TR
+        return ( $self->Alleles->[0] == $self->Alleles->[1] );
+    }
+);
+
+has 'IsHeterozygous' => (
+    is      => 'ro',
+    isa     => 'Bool',
+    lazy    => 1,
+    default => sub {
+        my $self = shift;
+
+        # If there are several alleles, this is a "multi" TR
+        return !( $self->IsHomozygous );
+    }
+);
+
+has 'RefTyped' => (
+    is      => 'ro',
+    isa     => 'Bool',
+    lazy    => 1,
+    default => sub {
+        my $self = shift;
+        return ( $self->Alleles->[0] == 0 );
+    }
+);
+
+has 'NumAlleles' => (
+    is      => 'ro',
+    isa     => 'Int',
+    lazy    => 1,
+    default => sub {
+        my $self = shift;
+        return scalar( @{ $self->CopyGainLoss } );
+    }
+);
+
+sub filter_passed {
     my $self = shift;
 
-    # If there are several alleles (rare) or the second
-    # allele is greater than 0, this is a VNTR
-    return ( scalar @{ $self->Alleles } > 2 ) || ( $self->Alleles->[1] > 0 );
-}
-
-sub is_multi {
-    my $self = shift;
-
-    # If there are several alleles, this is a "mult" TR
-    return ( scalar @{ $self->Alleles } > 2 );
+    # If there are several alleles, this is a "multi" TR
+    return ( defined $self->Filter->{PASS} );
 }
 
 sub print_line {
@@ -105,28 +196,27 @@ sub get_refseq {
     return ( $self->RefSeq );
 }
 
-sub get_allele_seqs {
+sub get_altseqs {
     my $self   = shift;
     my %args   = @_;
     my $concat = "";
     my $sep    = ( $args{'sep'} ) ? $args{'sep'} : ",";
-    my @tmp;
 
-    return ( @{ $self->AlleleSeqs } )
+    return ( @{ $self->AltAlleleSeqs } )
         if (wantarray);
 
-    if ( $self->Alleles->[0] == $self->Alleles->[1] ) {
-        $concat = $self->AlleleSeqs->[0];
-    }
-    else {
-        my @tmp;
-        for my $aseq ( @{ $self->AlleleSeqs } ) {
-            push @tmp, sprintf( "%s", $aseq );
-        }
-        $concat .= join "$sep", @tmp;
-    }
+    # if ( $self->IsHomozygous ) {
+    #     $concat = $self->AltAlleleSeqs->[0];
+    # }
+    # else {
+    #     my @tmp;
+    #     for my $aseq ( @{ $self->AltAlleleSeqs } ) {
+    #         push @tmp, sprintf( "%s", $aseq );
+    #     }
+    #     $concat .= join "$sep", @tmp;
+    # }
 
-    return $concat;
+    return ( join "$sep", @{ $self->AltAlleleSeqs } );
 }
 
 sub get_alleles {
@@ -138,16 +228,16 @@ sub get_alleles {
     return ( @{ $self->Alleles } )
         if (wantarray);
 
-    if ( $self->Alleles->[0] == $self->Alleles->[1] ) {
+    if ( $self->IsHomozygous ) {
         $concat
             = sprintf( "%d$sep%d", $self->Alleles->[0], $self->Alleles->[0] );
     }
     else {
-        my @tmp;
-        for my $a ( @{ $self->Alleles } ) {
-            push @tmp, sprintf( "%d", $a );
-        }
-        $concat .= join "$sep", @tmp;
+        # my @tmp;
+        # for my $a ( @{ $self->Alleles } ) {
+        #     push @tmp, sprintf( "%d", $a );
+        # }
+        $concat = join "$sep", @{ $self->Alleles };
     }
 
     return $concat;
@@ -162,7 +252,7 @@ sub get_cgls {
     return ( @{ $self->CopyGainLoss } )
         if (wantarray);
 
-    if ( $self->Alleles->[0] == $self->Alleles->[1] ) {
+    if ( $self->IsHomozygous ) {
         $concat = sprintf( "%+d$sep%+d",
             $self->CopyGainLoss->[0],
             $self->CopyGainLoss->[0] );
@@ -172,7 +262,7 @@ sub get_cgls {
         for my $cgl ( @{ $self->CopyGainLoss } ) {
             push @tmp, sprintf( "%+d", $cgl );
         }
-        $concat .= join "$sep", @tmp;
+        $concat = join "$sep", @tmp;
     }
 
     return $concat;
@@ -187,17 +277,42 @@ sub get_rcs {
     return ( @{ $self->ReadCounts } )
         if (wantarray);
 
-    if ( $self->Alleles->[0] == $self->Alleles->[1] ) {
+    if ( $self->IsHomozygous ) {
         $concat = sprintf( "%d$sep%d",
             $self->ReadCounts->[0],
             $self->ReadCounts->[0] );
     }
     else {
-        my @tmp;
-        for my $rc ( @{ $self->ReadCounts } ) {
-            push @tmp, sprintf( "%d", $rc );
-        }
-        $concat .= join "$sep", @tmp;
+        # my @tmp;
+        # for my $rc ( @{ $self->ReadCounts } ) {
+        #     push @tmp, sprintf( "%d", $rc );
+        # }
+        $concat = join "$sep", @{ $self->ReadCounts };
+    }
+
+    return $concat;
+}
+
+sub get_zslabels {
+    my $self   = shift;
+    my %args   = @_;
+    my $concat = "";
+    my $sep    = ( $args{'sep'} ) ? $args{'sep'} : ",";
+
+    return ( @{ $self->ZSLabels } )
+        if (wantarray);
+
+    if ( $self->IsHomozygous ) {
+        $concat
+            = sprintf( "%d$sep%d", $self->ZSLabels->[0],
+            $self->ZSLabels->[0] );
+    }
+    else {
+        # my @tmp;
+        # for my $a ( @{ $self->ZSLabels } ) {
+        #     push @tmp, sprintf( "%d", $a );
+        # }
+        $concat = join "$sep", @{ $self->ZSLabels };
     }
 
     return $concat;
@@ -209,12 +324,15 @@ sub print_gt_tab {
     my $out_str = "";
 
     next
-        if($args{'vntr_only'} && !$self->is_vntr);
+        if ( $args{'vntr_only'} && !$self->is_vntr );
 
     my @alleles = $self->get_alleles;
 
-    for ( my ($a, $seq_i) = (0, 0); $a < scalar @alleles; ++$a ) {
-        my $seq = ($self->Alleles->[$a] == 0) ? "." : $self->AlleleSeqs->[$seq_i++] ;
+    for ( my ( $a, $seq_i ) = ( 0, 0 ); $a < scalar @alleles; ++$a ) {
+        my $seq
+            = ( $self->Alleles->[$a] == 0 )
+            ? "."
+            : $self->AltAlleleSeqs->[ $seq_i++ ];
     }
 }
 

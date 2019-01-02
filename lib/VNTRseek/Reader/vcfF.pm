@@ -25,13 +25,15 @@ package VNTRseek::Reader::vcfF;
 use Carp;
 use Moose;
 use IO::File;
+use VCF;
 use namespace::autoclean;
 
 # use Vcf;
 
 my @fieldnames = qw( Repeatid    RefSeq
-    AlleleSeqs   Alleles     ReadCounts
-    CopyGainLoss   IsVNTR
+    AltAlleleSeqs   Alleles     ReadCounts
+    CopyGainLoss   ZSLabels MLLabel
+    MLConfidence   TreeNodePercent  Filter
 );
 
 has 'fh' => (
@@ -47,77 +49,233 @@ has 'prefix' => (
     required => 0
 );
 
-has 'vcf' => ( is => 'ro', writer => '_set_vcf' );
+has 'vcf' => (
+    is     => 'ro',
+    writer => '_set_vcf',
+    isa    => 'VCF'
+);
 
-has 'genome' => ( is => 'ro', writer => '_set_genome' );
+has 'genome' => (
+    is     => 'ro',
+    writer => '_set_genome'
+);
+
+has 'ploidy' => (
+    is     => 'ro',
+    writer => '_set_ploidy'
+);
+
+has 'num_trs' => (
+    is     => 'ro',
+    writer => '_set_num_trs'
+);
+
+has 'num_vntrs' => (
+    is     => 'ro',
+    writer => '_set_num_vntrs'
+);
+
+has 'col_idx' => (
+    is     => 'ro',
+    isa    => 'HashRef',
+    writer => '_set_col_idx'
+);
+
+has 'mlz' => (
+    is     => 'ro',
+    default => 0,
+    writer => '_set_mlz'
+);
 
 sub BUILD {
     my $self = shift;
 
-    # my $vcf = Vcf->new( fh => $self->fh )
-    #     or croak "Error reading VCF file: $!\n";
-
-    # $self->_set_vcf($vcf);
-    # $self->vcf->parse_header();
-    # my $g = $self->vcf->get_header_line( key => 'database' );
-    # $g = $g->[0]->[0]->{"value"};
-    # my $prefix = $self->prefix;
-    # $g =~ s/$prefix//;
-    # $self->_set_genome($g);
-    my $genome;
-
-    while ( my $line = $self->fh->getline ) {
-        chomp $line;
-        next
-            unless ( $line =~ /^##database="(.*)"/ );
-        my $prefix = $self->prefix;
-        my $g      = $1;
-        $g =~ s/$prefix//;
-        $self->_set_genome($g);
-        last;
-    }
+    my $vcf = VCF->new( fh => $self->fh );
+    $self->_set_vcf($vcf);
+    $self->vcf->parse_header();
+    my $genome = $self->vcf->get_header_line( key => 'database' );
     croak "Bad Vcf format? Database line not found."
-        unless $self->genome;
+        unless ( @$genome == 1 );
+    my $prefix = $self->prefix;
+    $genome = $genome->[0]->[0]->{value};
+    $genome =~ s/${prefix}(\w+)//;
+    croak
+        "Error getting genome/sample name. Do you need to set a prefix? ('prefix' currently set to '${prefix}')."
+        unless ($genome);
+    $self->_set_genome($1);
 
-    # Skip until line 26 where the 1st record is.
-    until ( $self->fh->input_line_number() == 25 ) {
-        $self->fh->getline;
+    my $num_trs = $self->vcf->get_header_line( key => 'numTRsWithSupport' );
+    croak "Bad Vcf format? numTRsWithSupport line not found."
+        unless ( @$num_trs == 1 );
+    $num_trs = $num_trs->[0]->[0]->{value};
+    $num_trs =~ s/"//g;
+    $self->_set_num_trs($num_trs);
+
+    my $num_vntrs = $self->vcf->get_header_line( key => 'numVNTRs' );
+    croak "Bad Vcf format? numVNTRs line not found."
+        unless ( @$num_vntrs == 1 );
+    $num_vntrs = $num_vntrs->[0]->[0]->{value};
+    $num_vntrs =~ s/"//g;
+    $self->_set_num_vntrs($num_vntrs);
+
+    unless ( $self->ploidy ) {
+        my $ploidy = $self->vcf->get_header_line( key => 'ploidy' );
+
+        if ( @$ploidy == 1 ) {
+            $ploidy = $ploidy->[0]->[0]->{value};
+            $ploidy =~ s/"//g;
+            $self->_set_ploidy($ploidy);
+        }
+        else {
+            # Set default ploidy of 2
+            $self->_set_ploidy(2);
+        }
     }
+
+    my $is_mlz_processed = @{$self->vcf->get_header_line( key => 'FILTER', ID => 'ALE' )} > 0;
+    if ( $is_mlz_processed ) {
+        $self->_set_mlz(1);
+    }
+
+    my %col_idxs = (
+        ID     => $self->vcf->get_column_index('ID'),
+        REF    => $self->vcf->get_column_index('REF'),
+        ALT    => $self->vcf->get_column_index('ALT'),
+        FILTER => $self->vcf->get_column_index('FILTER'),
+        FORMAT => $self->vcf->get_column_index('FORMAT'),
+        GTYPE  => $self->vcf->get_column_index( $self->genome ),
+    );
+    $self->_set_col_idx( \%col_idxs );
+
+    # # Skip until line 26 where the 1st record is.
+    # until ( $self->fh->input_line_number() == 25 ) {
+    #     $self->fh->getline;
+    # }
 }
 
 sub next_var {
-    my ($self, %opts) = @_;
+    my ( $self, %opts ) = @_;
 
     # return unless my $d_arr = $self->vcf->next_data_array;
     return unless my $line = $self->fh->getline;
-    chomp $line;
-    my @fields = split( "\t", $line );
-    croak "Bad format in Vcf record on line "
-        . $self->fh->input_line_number() . "\n"
-        unless @fields == 10;
-    my ( $trid, $refseq, $allele_seqs, $subj_info ) = @fields[ 2, 3, 4, 9 ];
-    my ( $gt, $sp, $cgl ) = split( ":", $subj_info );
+    my $vcf_arr = $self->vcf->next_data_array($line);
 
+    # For validating
+    if ( $opts{validate} ) {
+        my $x = $self->vcf->next_data_hash($line);
+        my $gtype_err
+            = $self->vcf->validate_gtype_field(
+            $x->{gtypes}->{ $self->genome },
+            $x->{ALT}, $x->{FORMAT}, );
+        if ($gtype_err) {
+            die "Genotype field validation error at line "
+                . $self->fh->input_line_number()
+                . ": $gtype_err\n";
+        }
+
+        my $filter_err = $self->vcf->validate_filter_field( $x->{FILTER} );
+        if ($filter_err) {
+            die "FILTER field validation error at line "
+                . $self->fh->input_line_number()
+                . ": $filter_err\n";
+        }
+    }
+
+    my ( $trid, $refseq, $alt_seqs, $filter, $format, $gtype ) = (
+        $vcf_arr->[ $self->col_idx->{ID} ],
+        $vcf_arr->[ $self->col_idx->{REF} ],
+        $vcf_arr->[ $self->col_idx->{ALT} ],
+        $vcf_arr->[ $self->col_idx->{FILTER} ],
+        $vcf_arr->[ $self->col_idx->{FORMAT} ],
+        $vcf_arr->[ $self->col_idx->{GTYPE} ],
+    );
+
+    # Mandatory genotype tags
     # For now, genotypes are always unphased in VNTRseek output
-    my @allele_seqs = split( ",", $allele_seqs );
-    my @alleles     = split( "/", $gt );
-    my @num_reads   = split( ",", $sp );
-    my @num_copies  = split( ",", $cgl );
+    my @allele_seqs = split( ",", $alt_seqs );
+    my @alleles = split(
+        "/",
+        $self->vcf->get_field(
+            $gtype, $self->vcf->get_tag_index( $format, 'GT' )
+        )
+    );
+    my @num_reads = split(
+        ",",
+        $self->vcf->get_field(
+            $gtype, $self->vcf->get_tag_index( $format, 'SP' )
+        )
+    );
+    my @num_copies = split(
+        ",",
+        $self->vcf->get_field(
+            $gtype, $self->vcf->get_tag_index( $format, 'CGL' )
+        )
+    );
 
-    # Save a "." as the reference allele sequence in the allele_seqs array
-    # when there is a heterozygous genotype.
-    # Users can get the actual refseq if needed from get_refseq
-    if ($alleles[0] == 0 && @alleles > 1) {
-        unshift @allele_seqs, ( ($opts{refseq}) ? $refseq : ".");
+    # For MLZ-processed files
+    my ( @zl, $mlz, $mlc, $mln, );
+
+    if ( $self->mlz ) {
+        my ( $zl_idx, $mlz_idx, $mlc_idx, $mln_idx ) = (
+            $self->vcf->get_tag_index( $format, 'ZL' ),
+            $self->vcf->get_tag_index( $format, 'MLZ' ),
+            $self->vcf->get_tag_index( $format, 'MLC' ),
+            $self->vcf->get_tag_index( $format, 'MLN' ),
+        );
+
+        @zl
+            = ( $zl_idx == -1 )
+            ? ()
+            : split( ',', $self->vcf->get_field( $gtype, $zl_idx ) );
+        $mlz
+            = ( $mlz_idx == -1 )
+            ? undef
+            : $self->vcf->get_field( $gtype, $mlz_idx );
+        $mlc
+            = ( $mlc_idx == -1 )
+            ? undef
+            : $self->vcf->get_field( $gtype, $mlc_idx );
+        $mln
+            = ( $mln_idx == -1 )
+            ? undef
+            : $self->vcf->get_field( $gtype, $mln_idx );
+
+        # If $mlz is set to '.' (missing value),
+        # set all these values to undefined.
+        if ( $mlz eq "." ) {
+            ( $mlz, $mlc, $mln ) = (undef) x 3
+        };
     }
-    elsif ($alleles[0] == 0 && @alleles == 1) {
-        @allele_seqs = ( ($opts{refseq}) ? $refseq : ".");
-    }
+
     $trid =~ s/td//;
 
-    # warn "TRID: $trid\n";
+    # VNTRseek::Reader::var doesn't accept '.' in arrays
+    # (this is by design)
+    if ( $alleles[0] != 0 ) {
+        shift @num_reads;
+        shift @num_copies;
+        shift @zl;
+    }
+
+    # use Data::Dumper;
+    my %filter_hash = map { $_ => 1 } split( ";", $filter );
+
+    # print Dumper(\%filter_hash) . "\n";
+
     my %args;
-    @args{@fieldnames} = ( $trid, $refseq, \@allele_seqs, \@alleles, \@num_reads, \@num_copies );
+    @args{@fieldnames} = (
+        $trid,
+        $refseq,
+        \@allele_seqs,
+        \@alleles,
+        \@num_reads,
+        \@num_copies,
+        \@zl,
+        $mlz,
+        $mlc,
+        $mln,
+        \%filter_hash
+    );
 
     my $module = "VNTRseek::Reader::var";
     my $load = File::Spec->catfile( ( split( /::/, "$module.pm" ) ) );
@@ -128,7 +286,10 @@ sub next_var {
     } or do {
         croak "Could not load module '$module': $@\n" . "Exiting...\n";
     };
-    return $module->new(%args);
+    my $var = $module->new(%args);
+    $var->IsVNTR( @alleles > 2 || $alleles[1] > 0 );
+    $var->IsMulti( @alleles > $self->ploidy );
+    return $var;
 }
 
 __PACKAGE__->meta->make_immutable;
