@@ -33,7 +33,7 @@ use overload q("") => sub {
         $self->FlankingRight1000, $self->Conserved ),
         "\n";
 };
-# use namespace::autoclean;
+use namespace::autoclean;
 
 has 'Repeatid' => (
     is       => 'ro',

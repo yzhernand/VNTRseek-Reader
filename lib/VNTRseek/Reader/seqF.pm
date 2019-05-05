@@ -27,6 +27,7 @@ use Moo;
 use Types::Standard qw( FileHandle );
 use Carp;
 use IO::File;
+use namespace::autoclean;
 
 my @fieldnames = qw( Repeatid FirstIndex
     LastIndex         CopyNumber
