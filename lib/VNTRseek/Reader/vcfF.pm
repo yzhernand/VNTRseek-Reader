@@ -22,11 +22,13 @@ package VNTRseek::Reader::vcfF;
 #
 # where $fh is an IO::File file handle.
 
-use Carp;
-use Moose;
-use IO::File;
 use VCF;
-use namespace::autoclean;
+use Moo;
+use Sub::Quote qw( quote_sub );
+use Types::Standard qw( Str FileHandle HashRef );
+use Carp;
+use IO::File;
+use namespace::clean;
 
 # use Vcf;
 
@@ -36,23 +38,28 @@ my @fieldnames = qw( Repeatid    RefSeq
     MLConfidence   TreeNodePercent  Filter
 );
 
+my $VCF = "Type::Tiny"->new(
+    name => 'VCF',
+    constraint => quote_sub('$_->isa("VCF")'),
+    );
+
 has 'fh' => (
     is       => 'rw',
-    isa      => 'FileHandle',
+    isa      => FileHandle,
     required => 1
 );
 
 has 'prefix' => (
     is       => 'rw',
-    isa      => 'Str',
+    isa      => Str,
     default  => 'VNTRPIPE_',
     required => 0
 );
 
 has 'vcf' => (
     is     => 'ro',
+    isa    => $VCF,
     writer => '_set_vcf',
-    isa    => 'VCF'
 );
 
 has 'genome' => (
@@ -77,7 +84,7 @@ has 'num_vntrs' => (
 
 has 'col_idx' => (
     is     => 'ro',
-    isa    => 'HashRef',
+    isa    => HashRef,
     writer => '_set_col_idx'
 );
 
@@ -291,7 +298,5 @@ sub next_var {
     $var->IsMulti( @alleles > $self->ploidy );
     return $var;
 }
-
-__PACKAGE__->meta->make_immutable;
 
 1;

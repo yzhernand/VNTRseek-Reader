@@ -19,11 +19,10 @@ package VNTRseek::Reader::seq;
 #     print $seq_record;
 #     # Prints line to file handle pointed to by $fh
 #     print $fh $seq_record;
-use strict;
-use warnings;
+use Moo;
+use Types::Standard qw( Int Str Num );
 use 5.010;
 use Carp;
-use Moose;
 use overload q("") => sub {
     my $self = shift;
     return join( ",",
@@ -34,65 +33,65 @@ use overload q("") => sub {
         $self->FlankingRight1000, $self->Conserved ),
         "\n";
 };
-use namespace::autoclean;
+# use namespace::autoclean;
 
 has 'Repeatid' => (
     is       => 'ro',
-    isa      => 'Int',
+    isa      => Int,
     required => 1
 );
 
 has 'FirstIndex' => (
     is       => 'ro',
-    isa      => 'Int',
+    isa      => Int,
     required => 1
 );
 
 has 'LastIndex' => (
     is       => 'ro',
-    isa      => 'Int',
+    isa      => Int,
     required => 1
 );
 
 has 'CopyNumber' => (
     is       => 'ro',
-    isa      => 'Num',
+    isa      => Num,
     required => 1
 );
 
 has 'FastaHeader' => (
     is       => 'ro',
-    isa      => 'Str',
+    isa      => Str,
     required => 1
 );
 
 has 'FlankingLeft1000' => (
     is       => 'ro',
-    isa      => 'Str',
+    isa      => Str,
     required => 1
 );
 
 has 'Pattern' => (
     is       => 'ro',
-    isa      => 'Str',
+    isa      => Str,
     required => 1
 );
 
 has 'ArraySequence' => (
     is       => 'ro',
-    isa      => 'Str',
+    isa      => Str,
     required => 1
 );
 
 has 'FlankingRight1000' => (
     is       => 'ro',
-    isa      => 'Str',
+    isa      => Str,
     required => 1
 );
 
 has 'Conserved' => (
     is       => 'ro',
-    isa      => 'Num',
+    isa      => Num,
     required => 1
 );
 
@@ -118,7 +117,5 @@ sub print_brief {
         $self->CopyNumber, $self->FastaHeader, $self->Pattern ),
         "\n";
 }
-
-__PACKAGE__->meta->make_immutable;
 
 1;

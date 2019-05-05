@@ -6,13 +6,12 @@
 # @date     Apr 05, 2016
 #*
 
-use 5.010;
 use strict;
 use warnings;
-use Moose;
+use 5.010;
 use IO::Uncompress::Gunzip qw(gunzip $GunzipError) ;
-use lib "lib";
-use Test::More tests => 10;
+use lib "../lib";
+use Test::More tests => 12;
 
 BEGIN {
     use_ok('VNTRseek::Reader');

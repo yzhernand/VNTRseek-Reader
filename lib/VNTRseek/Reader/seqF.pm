@@ -22,13 +22,11 @@ package VNTRseek::Reader::seqF;
 #
 # where $fh is an IO::File file handle.
 
-use strict;
-use warnings;
 use 5.010;
+use Moo;
+use Types::Standard qw( FileHandle );
 use Carp;
-use Moose;
 use IO::File;
-use namespace::autoclean;
 
 my @fieldnames = qw( Repeatid FirstIndex
     LastIndex         CopyNumber
@@ -39,7 +37,7 @@ my @fieldnames = qw( Repeatid FirstIndex
 
 has 'fh' => (
     is       => 'rw',
-    isa      => 'FileHandle',
+    isa      => FileHandle,
     required => 1
 );
 
@@ -75,7 +73,5 @@ sub next_seq {
     };
     return $module->new(%args);
 }
-
-__PACKAGE__->meta->make_immutable;
 
 1;

@@ -4,8 +4,6 @@
 # @date     Oct 20, 2014
 #*
 
-use strict;
-
 package VNTRseek::Reader::var;
 
 #** @class VNTRseek::Reader::var
@@ -23,7 +21,9 @@ package VNTRseek::Reader::var;
 #     print $fh $vcf_record;
 
 use Carp;
-use Moose;
+use Moo;
+use Types::Standard qw( Int Str Num ArrayRef Bool Maybe HashRef );
+use namespace::clean;
 use overload q("") => sub {
     my $self    = shift;
     my $out_str = "$self->{Repeatid}\t$self->{RefSeq}\t";
@@ -44,86 +44,85 @@ use overload q("") => sub {
     $out_str
         .= ( $self->has_treenodepercent ) ? "" : ":" . $self->TreeNodePercent;
 };
-use namespace::autoclean;
 
 has 'Repeatid' => (
     is       => 'ro',
-    isa      => 'Int',
+    isa      => Int,
     required => 1
 );
 
 has 'RefSeq' => (
     is       => 'ro',
-    isa      => 'Str',
+    isa      => Str,
     required => 1
 );
 
 has 'AltAlleleSeqs' => (
     is       => 'ro',
-    isa      => 'ArrayRef[Str]',
+    isa      => ArrayRef[Str],
     required => 1
 );
 
 has 'Alleles' => (
     is       => 'ro',
-    isa      => 'ArrayRef[Int]',
+    isa      => ArrayRef[Int],
     required => 1
 );
 
 has 'ReadCounts' => (
     is       => 'ro',
-    isa      => 'ArrayRef[Int]',
+    isa      => ArrayRef[Int],
     required => 1
 );
 
 has 'CopyGainLoss' => (
     is       => 'ro',
-    isa      => 'ArrayRef[Int]',
+    isa      => ArrayRef[Int],
     required => 1
 );
 
 has 'ZSLabels' => (
     is        => 'ro',
-    isa       => 'Maybe[ArrayRef[Str]]',
+    isa       => Maybe[ArrayRef[Str]],
     predicate => 'has_zslabels',
 );
 
 has 'MLLabel' => (
     is        => 'ro',
-    isa       => 'Maybe[Str]',
+    isa       => Maybe[Str],
     predicate => 'has_mllabel',
 );
 
 has 'MLConfidence' => (
     is        => 'ro',
-    isa       => 'Maybe[Num]',
+    isa       => Maybe[Num],
     predicate => 'has_mlconfidence',
 );
 
 has 'TreeNodePercent' => (
     is        => 'ro',
-    isa       => 'Maybe[Num]',
+    isa       => Maybe[Num],
     predicate => 'has_treenodepercent',
 );
 
 has 'Filter' => (
     is  => 'ro',
-    isa => 'HashRef[Str]',
+    isa => HashRef[Str],
 );
 
 has 'IsVNTR' => (
     is  => 'rw',
-    isa => 'Bool',
+    isa => Bool,
 );
 
 has 'IsMulti' => (
     is  => 'rw',
-    isa => 'Bool',
+    isa => Bool,
 );
 
 has 'IsHomozygous' => (
     is      => 'ro',
-    isa     => 'Bool',
+    isa     => Bool,
     lazy    => 1,
     default => sub {
         my $self = shift;
@@ -135,7 +134,7 @@ has 'IsHomozygous' => (
 
 has 'IsHeterozygous' => (
     is      => 'ro',
-    isa     => 'Bool',
+    isa     => Bool,
     lazy    => 1,
     default => sub {
         my $self = shift;
@@ -147,7 +146,7 @@ has 'IsHeterozygous' => (
 
 has 'RefTyped' => (
     is      => 'ro',
-    isa     => 'Bool',
+    isa     => Bool,
     lazy    => 1,
     default => sub {
         my $self = shift;
@@ -157,7 +156,7 @@ has 'RefTyped' => (
 
 has 'NumAlleles' => (
     is      => 'ro',
-    isa     => 'Int',
+    isa     => Int,
     lazy    => 1,
     default => sub {
         my $self = shift;
@@ -335,7 +334,5 @@ sub print_gt_tab {
             : $self->AltAlleleSeqs->[ $seq_i++ ];
     }
 }
-
-__PACKAGE__->meta->make_immutable;
 
 1;

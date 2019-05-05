@@ -22,13 +22,10 @@ package VNTRseek::Reader;
 
 use strict;
 use warnings;
-use 5.010;
 use Carp;
-use Moose;
 use IO::File;
 use File::Spec;
 use VNTRseek::Common;
-use namespace::autoclean;
 
 sub get_file_reader {
     my $self    = shift;
@@ -68,7 +65,5 @@ sub get_file_reader {
 
     return $module->new( fh => $fh, %args );
 }
-
-__PACKAGE__->meta->make_immutable;
 
 1;
