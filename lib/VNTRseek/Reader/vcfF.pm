@@ -105,7 +105,8 @@ sub BUILD {
         unless ( @$genome == 1 );
     my $prefix = $self->prefix;
     $genome = $genome->[0]->[0]->{value};
-    $genome =~ s/${prefix}(\w+)//;
+    ($ENV{DEBUG}) && warn "Genome: $genome\n";
+    $genome =~ s/"?${prefix}(\w+)"?/$1/;
     croak
         "Error getting genome/sample name. Do you need to set a prefix? ('prefix' currently set to '${prefix}')."
         unless ($genome);

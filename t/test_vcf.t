@@ -10,7 +10,7 @@ use strict;
 use warnings;
 use 5.010;
 use IO::Uncompress::Gunzip qw(gunzip $GunzipError) ;
-use lib "../lib";
+use lib "lib";
 use Test::More tests => 12;
 
 BEGIN {
